@@ -5,9 +5,11 @@
 */
 #include <LiquidCrystal.h>
 LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
+String valueString = "";
 String inputString = "";
 volatile boolean mutex;
 volatile boolean stringComplete = false;
+String commandString = "";
 int ledPin1 = 5;
 int ledPin2 = 6;
 int ledPin3 = 7;
@@ -38,7 +40,7 @@ void loop() {
 	}*/
   if(!mutex && stringComplete){
 		lcd.clear();
-		Serial.println(inputString);
+		//Serial.println(inputString);
 		if(inputString.length() < 16){
 			lcd.print(inputString);
 		}
@@ -66,18 +68,30 @@ void changeLedState(){
 			}
 }
 
+
 //Interrupt handler for UART
 void serialEvent(){
 	while(Serial.available()){
-		mutex = true; 
-		char inChar = (char)Serial.read();
+		mutex = true;
+		if(stringComplete == true){
+			//	Check if found command is in list of known commands
+				//	Save command, save value
+				//	Change flag to indicate command and value are available
+		}else{
+			char inChar = (char)Serial.read();
+			if(inChar == '/'){
+				stringComplete = true;
+			}
+			else{
+				commandString += inChar;
+			}
+		}
+		
+			
 		inputString += inChar;
-
 		if(inputString.substring(inputString.length() - 2, inputString.length()).equals("CR")){
-			//Serial.println("ASD");
 			stringComplete = true;
 			mutex = false;
-			
 		}
 	}
 }
