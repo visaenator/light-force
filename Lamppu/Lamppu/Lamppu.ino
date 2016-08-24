@@ -38,7 +38,7 @@ void loop() {
 	if(buttonState == HIGH){
 		changeLedState();
 	}*/
-  if(!mutex && stringComplete){
+	if(!mutex && stringComplete){
 		lcd.clear();
 		//Serial.println(inputString);
 		if(inputString.length() < 16){
