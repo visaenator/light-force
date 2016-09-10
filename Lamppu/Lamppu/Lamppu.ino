@@ -3,12 +3,13 @@
  Created:	5/9/2016 1:16:41 PM
  Author:	Jodi
 */
-#include <LiquidCrystal.h>
-LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
 String valueString = "";
 String inputString = "";
 volatile boolean mutex;
 volatile boolean stringComplete = false;
+const int NUM_COMMANDS = 5;
+//Change size here to accommodate all commands we need. Or to conserve memory change type to array of pointers?
+String commands[NUM_COMMANDS];
 String commandString = "";
 int ledPin1 = 5;
 int ledPin2 = 6;
@@ -21,37 +22,15 @@ int buttonState = 0;
 // the setup function runs once when you press reset or power the board
 void setup() {
 	Serial.begin(9600);
-	lcd.begin(16, 2);
 	inputString.reserve(256);
 	mutex = false; 
-	/*pinMode(ledPin1, OUTPUT);
-	pinMode(ledPin3, OUTPUT);
-	pinMode(ledPin2, INPUT);*/
-
 }
 
 // the loop function runs over and over again until power down or reset
 void loop() {
-	//lcd.print("ASD");
-	/*analogWrite(currently, 255);
-	buttonState = digitalRead(ledPin2);
-	if(buttonState == HIGH){
-		changeLedState();
-	}*/
+
 	if(!mutex && stringComplete){
-		lcd.clear();
-		//Serial.println(inputString);
-		if(inputString.length() < 16){
-			lcd.print(inputString);
-		}
-		else if(inputString.length() > 16 && inputString.length() <= 32){
-			lcd.print(inputString.substring(0, 16));
-			lcd.setCursor(0,1);
-			lcd.print(inputString.substring(16, inputString.length()));
-		}
-		else{
-			lcd.print("FU TALK LESS");
-		}
+		Serial.println(inputString);
 		inputString = "";
 		mutex = true;
 		stringComplete = false; 
@@ -73,25 +52,51 @@ void changeLedState(){
 void serialEvent(){
 	while(Serial.available()){
 		mutex = true;
+
 		if(stringComplete == true){
-			//	Check if found command is in list of known commands
-				//	Save command, save value
-				//	Change flag to indicate command and value are available
+
+			for(int i = 0; i < NUM_COMMANDS; i++){
+
+				if (inputString.equals(commands[i])){
+
+					//	Save command, save value
+					commandString = inputString;
+					inputString = "";
+
+					while(!look_for_slash());
+					inputString = "";
+
+					while(!look_for_slash());
+					valueString = inputString;
+					inputString = "";
+
+					//	Change flag to indicate command and value are available
+					mutex = false;
+					break;
+				}
+			}
+			if(inputString.length() != 0){
+				inputString = "";
+				while(!look_for_slash);
+				// TODO: Convert inputString to int and skip that many chars on the value. 
+			}
+				
+				
 		}else{
-			char inChar = (char)Serial.read();
-			if(inChar == '/'){
-				stringComplete = true;
-			}
-			else{
-				commandString += inChar;
-			}
-		}
-		
-			
-		inputString += inChar;
-		if(inputString.substring(inputString.length() - 2, inputString.length()).equals("CR")){
+			while(!look_for_slash());
 			stringComplete = true;
-			mutex = false;
 		}
 	}
+}
+
+boolean look_for_slash(){
+	char inChar = (char)Serial.read();
+	if(inChar == '/'){
+		return true;
+	}
+	else{
+		inputString += inChar;
+		return false;
+	}
+
 }
