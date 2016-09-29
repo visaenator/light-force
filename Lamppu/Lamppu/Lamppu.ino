@@ -6,7 +6,7 @@
 String valueString = "";
 String inputString = "";
 volatile boolean mutex;
-volatile boolean stringComplete = false;
+volatile boolean stringComplete;
 const int NUM_COMMANDS = 5;
 //Change size here to accommodate all commands we need. Or to conserve memory change type to array of pointers?
 String commands[NUM_COMMANDS];
@@ -24,15 +24,17 @@ void setup() {
 	Serial.begin(9600);
 	inputString.reserve(256);
 	mutex = false; 
+	stringComplete = false;
 }
 
 // the loop function runs over and over again until power down or reset
 void loop() {
-
 	if(!mutex && stringComplete){
-		Serial.println(inputString);
-		inputString = "";
 		mutex = true;
+		if(validate_tlv(inputString)){
+			Serial.println(inputString);
+		}
+		mutex = false;
 		stringComplete = false; 
 	}
 }
@@ -50,43 +52,35 @@ void changeLedState(){
 
 //Interrupt handler for UART
 void serialEvent(){
-	while(Serial.available()){
+	if(!mutex){
 		mutex = true;
+		delayMicroseconds(100);
+		while(Serial.available()){
+			stringComplete = false;
+			char inChar = (char)Serial.read();
+			inputString += inChar;
+		}
+		stringComplete = true;
+	}
+	mutex = false;
+	
+}
 
-		if(stringComplete == true){
-
-			for(int i = 0; i < NUM_COMMANDS; i++){
-
-				if (inputString.equals(commands[i])){
-
-					//	Save command, save value
-					commandString = inputString;
-					inputString = "";
-
-					while(!look_for_slash());
-					inputString = "";
-
-					while(!look_for_slash());
-					valueString = inputString;
-					inputString = "";
-
-					//	Change flag to indicate command and value are available
-					mutex = false;
-					break;
-				}
-			}
-			if(inputString.length() != 0){
-				inputString = "";
-				while(!look_for_slash);
-				// TODO: Convert inputString to int and skip that many chars on the value. 
-			}
-				
-				
-		}else{
-			while(!look_for_slash());
-			stringComplete = true;
+boolean validate_tlv(String tlv_data){
+	int slashes = 0;
+	for(int i = 0; i < tlv_data.length(); i++){
+		if(tlv_data[i] == '/'){
+			slashes = slashes + 1;
 		}
 	}
+	if(slashes == 2){
+
+		return true;
+	}
+	else{
+		return false;
+	}
+
 }
 
 boolean look_for_slash(){
