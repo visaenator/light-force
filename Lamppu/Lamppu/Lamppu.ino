@@ -3,26 +3,22 @@
  Created:	5/9/2016 1:16:41 PM
  Author:	Jodi
 */
+
 String valueString = "";
-String inputString = "";
+
 volatile boolean mutex;
 volatile boolean stringComplete;
+const int SERIAL_STR_LEN = 256;
+const int SERIAL_BUF_LEN = 5;
 const int NUM_COMMANDS = 5;
 //Change size here to accommodate all commands we need. Or to conserve memory change type to array of pointers?
 String commands[NUM_COMMANDS];
-String commandString = "";
-int ledPin1 = 5;
-int ledPin2 = 6;
-int ledPin3 = 7;
-int sleep = 2000;
-int currently = 7;
-int buttonState = 0;
+char inputString[SERIAL_STR_LEN];
 
 
 // the setup function runs once when you press reset or power the board
 void setup() {
 	Serial.begin(9600);
-	inputString.reserve(256);
 	mutex = false; 
 	stringComplete = false;
 }
@@ -31,37 +27,29 @@ void setup() {
 void loop() {
 	if(!mutex && stringComplete){
 		mutex = true;
-		if(validate_tlv(inputString)){
-			Serial.println(inputString);
-		}
+		Serial.println(inputString);
+		memset(inputString, 0, SERIAL_STR_LEN);
 		mutex = false;
 		stringComplete = false; 
 	}
-}
-
-void changeLedState(){
-		analogWrite(currently, 0);
-		if(currently == 5){
-				currently = 7;	
-			}
-			else{
-				currently = 5;
-			}
 }
 
 
 //Interrupt handler for UART
 void serialEvent(){
 	if(!mutex){
+		//Reserve access to buffer.
 		mutex = true;
-		delayMicroseconds(100);
 		while(Serial.available()){
+			// Indicate reading is ongoing.
 			stringComplete = false;
-			char inChar = (char)Serial.read();
-			inputString += inChar;
+			// Read bytes until terminator or max length.
+			byte inChar = Serial.readBytesUntil(0, inputString, SERIAL_STR_LEN);
+			// Indicate read Complete, result stored in array.
+			stringComplete = true;
 		}
-		stringComplete = true;
 	}
+	// Release mutex
 	mutex = false;
 	
 }
@@ -80,17 +68,4 @@ boolean validate_tlv(String tlv_data){
 	else{
 		return false;
 	}
-
-}
-
-boolean look_for_slash(){
-	char inChar = (char)Serial.read();
-	if(inChar == '/'){
-		return true;
-	}
-	else{
-		inputString += inChar;
-		return false;
-	}
-
 }
