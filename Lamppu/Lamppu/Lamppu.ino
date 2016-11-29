@@ -3,81 +3,69 @@
  Created:	5/9/2016 1:16:41 PM
  Author:	Jodi
 */
-#include <LiquidCrystal.h>
-LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
-String inputString = "";
+
+String valueString = "";
+
 volatile boolean mutex;
-volatile boolean stringComplete = false;
-int ledPin1 = 5;
-int ledPin2 = 6;
-int ledPin3 = 7;
-int sleep = 2000;
-int currently = 7;
-int buttonState = 0;
+volatile boolean stringComplete;
+const int SERIAL_STR_LEN = 256;
+const int SERIAL_BUF_LEN = 5;
+const int NUM_COMMANDS = 5;
+//Change size here to accommodate all commands we need. Or to conserve memory change type to array of pointers?
+String commands[NUM_COMMANDS];
+char inputString[SERIAL_STR_LEN];
 
 
 // the setup function runs once when you press reset or power the board
 void setup() {
 	Serial.begin(9600);
-	lcd.begin(16, 2);
-	inputString.reserve(256);
 	mutex = false; 
-	/*pinMode(ledPin1, OUTPUT);
-	pinMode(ledPin3, OUTPUT);
-	pinMode(ledPin2, INPUT);*/
-
+	stringComplete = false;
 }
 
 // the loop function runs over and over again until power down or reset
 void loop() {
-	//lcd.print("ASD");
-	/*analogWrite(currently, 255);
-	buttonState = digitalRead(ledPin2);
-	if(buttonState == HIGH){
-		changeLedState();
-	}*/
-  if(!mutex && stringComplete){
-		lcd.clear();
-		Serial.println(inputString);
-		if(inputString.length() < 16){
-			lcd.print(inputString);
-		}
-		else if(inputString.length() > 16 && inputString.length() <= 32){
-			lcd.print(inputString.substring(0, 16));
-			lcd.setCursor(0,1);
-			lcd.print(inputString.substring(16, inputString.length()));
-		}
-		else{
-			lcd.print("FU TALK LESS");
-		}
-		inputString = "";
+	if(!mutex && stringComplete){
 		mutex = true;
+		Serial.println(inputString);
+		memset(inputString, 0, SERIAL_STR_LEN);
+		mutex = false;
 		stringComplete = false; 
 	}
 }
 
-void changeLedState(){
-		analogWrite(currently, 0);
-		if(currently == 5){
-				currently = 7;	
-			}
-			else{
-				currently = 5;
-			}
-}
 
 //Interrupt handler for UART
 void serialEvent(){
-	while(Serial.available()){
-		mutex = true; 
-		char inChar = (char)Serial.read();
-		inputString += inChar;
-
-		if(inputString.substring(inputString.length() - 2, inputString.length()).equals("CR")){
-			//Serial.println("ASD");
+	if(!mutex){
+		//Reserve access to buffer.
+		mutex = true;
+		while(Serial.available()){
+			// Indicate reading is ongoing.
+			stringComplete = false;
+			// Read bytes until terminator or max length.
+			byte inChar = Serial.readBytesUntil(0, inputString, SERIAL_STR_LEN);
+			// Indicate read Complete, result stored in array.
 			stringComplete = true;
-			mutex = false;
-			
 		}
+	}
+	// Release mutex
+	mutex = false;
+	
+}
+
+boolean validate_tlv(String tlv_data){
+	int slashes = 0;
+	for(int i = 0; i < tlv_data.length(); i++){
+		if(tlv_data[i] == '/'){
+			slashes = slashes + 1;
+		}
+	}
+	if(slashes == 2){
+
+		return true;
+	}
+	else{
+		return false;
 	}
 }
