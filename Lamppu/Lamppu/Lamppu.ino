@@ -3,6 +3,7 @@
  Created:	5/9/2016 1:16:41 PM
  Author:	Jodi
 */
+#include "i2c_interface.h"
 #include <LiquidCrystal.h>
 LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
 String inputString = "";
