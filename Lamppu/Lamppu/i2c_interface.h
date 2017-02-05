@@ -8,6 +8,7 @@ This library is a wrapper for functionalities needed from a generic i2c master u
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "arduino.h"
+	#include "Wire\src\Wire.h"
 #else
 	#include "WProgram.h"
 #endif
